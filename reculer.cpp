@@ -31,8 +31,8 @@ int main(int argc, char *argv[])
     pinMode(23, OUTPUT);
 	pinMode(0, OUTPUT);
 	pinMode(2, OUTPUT);
-	digitalWrite(0, 0);
-	digitalWrite(2, 0);
+	digitalWrite(0, 1);
+	digitalWrite(2, 1);
     int fd = pca9685Setup(PIN_BASE, 0x40, HERTZ);
     if (fd < 0)
     {

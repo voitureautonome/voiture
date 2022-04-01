@@ -4,6 +4,7 @@
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
 #include "pca9685.h"
+#include <string.h>
 #define PIN_BASE 300
 #define MAX_PWM 4096
 #define HERTZ 60
@@ -40,7 +41,7 @@ int main(int argc, char *argv[])
         return fd;
     }
     // Reset all output
-    pca9685PWMReset(fd);
+    // pca9685PWMReset(fd);
 
     float millis = 1.5;
     int tick = calcTicks(millis, HERTZ);
@@ -53,8 +54,11 @@ int main(int argc, char *argv[])
 	pwmWrite(PIN_BASE + 5, calcTicks(12, HERTZ));
     if(argc<2)
         delay(1000);
-    else
+    else {
+        if(strcmp(argv[1], "infinity") == 0)
+            return 0;
         delay(atoi(argv[1]));
+    }
     pwmWrite(PIN_BASE + 4, calcTicks(0, HERTZ));
 	pwmWrite(PIN_BASE + 5, calcTicks(0, HERTZ));
     return 0;

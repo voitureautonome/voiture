@@ -345,12 +345,38 @@ bool obstacleMiDist(LaserPoint p) {
 	else return false;
 }
 
+bool droiteLibre(LaserScan scan) {
+	float angleMax = 20.f;
+	float debut = 0.f;
+	bool res = true;
+
+	for(LaserPoint p : scan.points) {
+		float ang = radToDeg(p.angle);
+		if(p.range > 0.3) break;
+		if((ang > debut) && (ang > debut + angleMax/2) && (ang < debut + 2*angleMax)) return false;
+	}
+	return res;
+}
+
+bool gaucheLibre(LaserScan scan) {
+	float angleMax = 20.f;
+	float debut = 0.f;
+	bool res = true;
+
+	for(LaserPoint p : scan.points) {
+		float ang = radToDeg(p.angle);
+		if(p.range > 0.3) break;
+		if((ang > debut) && (ang < debut - angleMax/2) && (ang < debut - 2*angleMax)) return false;
+	}
+	return res;
+}
+
 int decision(LaserScan scan) {
 
-	float angleMax = 30.f;
-	float moitie = 180.f;
+	float angleMax = 20.f;
 	float debut = 0.f;
-	float fin = 359.99f;
+	float finDroite = 180.f;
+	float finGauche = 180.f;
 
 	
 	for(LaserPoint p : scan.points)
@@ -358,20 +384,29 @@ int decision(LaserScan scan) {
 		float ang = radToDeg(p.angle);
 		
 		// Obstacle devant le véhicule qui est proche
-		bool arret = (p.angle < debut + angleMax / 2 || p.angle > fin - angleMax / 2) && obstacleProche(p);
-		if (arret)
+		bool arret = (ang < debut + angleMax / 2 || ang > debut - angleMax / 2) && obstacleProche(p);
+		if (arret) {
+			printf("angle du point %f\n", ang);
+			printf("distance du point %f\n", ang);
+
 			return 0;
 
+		}
 
-		bool obstGauche = (p.angle > moitie && p.angle < fin) && (p.angle < angleMax / 2) && (p.angle > angleMax);
-		if (obstGauche)
+
+		bool obstGauche = (ang < debut && (ang < debut - angleMax / 2) && (ang > debut - 2*angleMax)) && obstacleMiDist(p);
+		if (obstGauche && droiteLibre(scan))
 		{
+			printf("angle du point %f\n", ang);
+			printf("distance du point %f\n", ang);
 			return 1;
 		}
 
-		bool obstDroite = (p.angle < moitie && p.angle > debut) && (p.angle > angleMax / 2) && (p.angle < angleMax);
-		if (obstGauche)
+		bool obstDroite = (ang > debut && (ang > debut + 2*angleMax / 2) && (ang < debut + 2*angleMax)) && obstacleMiDist(p);
+		if (obstDroite && gaucheLibre(scan))
 		{
+			printf("angle du point %f\n", ang);
+			printf("distance du point %f\n", ang);
 			return 2;
 		}
 

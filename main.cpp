@@ -6,10 +6,16 @@
 #include <opencv2/opencv.hpp>
 #include "pca9685.h"
 #include <src/CYdLidar.h>
+#include "time.h"
 #define PIN_BASE 300
 #define MAX_PWM 4096
 #define HERTZ 60
 #define M_PI 3.14159265358979323846
+
+#define AVANCER 1
+#define DEFAULT 0
+
+int etat = DEFAULT;
 
 /**
  * Calculate the number of ticks the signal should be high for the required amount of time
@@ -27,6 +33,16 @@ int calcTicks(float impulseMs, int hertz)
 float map(float input, float min, float max)
 {
 	return (input * max) + (1 - input) * min;
+}
+
+void arreter() {
+	pwmWrite(PIN_BASE + 4, calcTicks(0, HERTZ));
+	pwmWrite(PIN_BASE + 5, calcTicks(0, HERTZ));
+}
+
+void avancer() {
+	pwmWrite(PIN_BASE + 4, calcTicks(12, HERTZ));
+	pwmWrite(PIN_BASE + 5, calcTicks(12, HERTZ));
 }
 
 using namespace cv;
@@ -192,12 +208,40 @@ void lidar()
 		fflush(stderr);
 	}
 
+	float periode = 0.5;
+	time_t lastime;
+	time(&lastime)
+	
+
+
 	// Turn On success and loop
 	while (ret && ydlidar::os_isOk())
 	{
+		if(etat != 0) {
+			time_t now;
+			time(&now)
+			if(now - lastime < periode) continue;
+			else etat = 0;
+		}
+
+
 		LaserScan scan;
 		if (laser.doProcessSimple(scan))
 		{
+			int d = decision();
+			switch (d)
+			{
+			case 0:
+				arreter();
+				ret = false;
+				break;
+			default:
+				avancer();
+				etat = AVANCER;
+				break;
+			}
+
+
 			fprintf(stdout, "Scan received[%llu]: %u ranges is [%f]Hz\n",
 					scan.stamp,
 					(unsigned int)scan.points.size(), 1.0 / scan.config.scan_time);
@@ -226,4 +270,50 @@ void lidar()
 float radToDeg(float rad)
 {
 	return rad * (180 / M_PI);
+}
+
+boolean obstacleProche(LaserPoint p) {
+	if (p.range == 0) return false;
+	if (p.range < 20) return true;
+	else return false;
+}
+
+boolean obstacleMiDist(LaserPoint p) {
+	if (p.range == 0) return false;
+	if (p.range > 20 && p.range < 40) return true;
+	else return false;
+}
+
+int decision(LaserScan scan) {
+
+	float angleMax = 30.f;
+	float moitie = 180.f;
+	float debut = 0.f;
+	float fin = 359.99f;
+
+	for each (LaserPoint p in scan.points)
+	{
+		float ang = radToDeg(p.angle);
+		
+		// Obstacle devant le véhicule qui est proche
+		bool arret = (p.angle < debut + angleMax / 2 || p.angle > fin - angleMax / 2) && obstacleProche(p);
+		if (arret)
+			return 0;
+
+
+		bool obstGauche = (p.angle > moitie && p.angle < fin) && (p.angle < angleMax / 2) && (p.angle > angleMax);
+		if (obstGauche)
+		{
+			return 1;
+		}
+
+		bool obstDroite = (p.angle < moitie && p.angle > debut) && (p.angle > angleMax / 2) && (p.angle < angleMax);
+		if (obstGauche)
+		{
+			return 2;
+		}
+
+		
+
+	}
 }

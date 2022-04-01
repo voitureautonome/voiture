@@ -353,7 +353,7 @@ bool droiteLibre(LaserScan scan) {
 	for(LaserPoint p : scan.points) {
 		float ang = radToDeg(p.angle);
 		if(p.range > 0.3) break;
-		if((ang > debut) && (ang > debut + angleMax/2) && (ang < debut + 2*angleMax)) return false;
+		if((ang > debut) && (ang > debut + angleMax/2) && (ang < debut + 1.5*angleMax)) return false;
 	}
 	return res;
 }
@@ -366,7 +366,7 @@ bool gaucheLibre(LaserScan scan) {
 	for(LaserPoint p : scan.points) {
 		float ang = radToDeg(p.angle);
 		if(p.range > 0.3) break;
-		if((ang > debut) && (ang < debut - angleMax/2) && (ang < debut - 2*angleMax)) return false;
+		if((ang > debut) && (ang < debut - angleMax/2) && (ang < debut - 1.5*angleMax)) return false;
 	}
 	return res;
 }
@@ -387,26 +387,26 @@ int decision(LaserScan scan) {
 		bool arret = (ang < debut + angleMax / 2 || ang > debut - angleMax / 2) && obstacleProche(p);
 		if (arret) {
 			printf("angle du point %f\n", ang);
-			printf("distance du point %f\n", ang);
+			printf("distance du point %f\n", p.range);
 
 			return 0;
 
 		}
 
 
-		bool obstGauche = (ang < debut && (ang < debut - angleMax / 2) && (ang > debut - 2*angleMax)) && obstacleMiDist(p);
+		bool obstGauche = (ang < debut && (ang < debut - angleMax / 2) && (ang > debut - 1.3*angleMax)) && obstacleMiDist(p);
 		if (obstGauche && droiteLibre(scan))
 		{
 			printf("angle du point %f\n", ang);
-			printf("distance du point %f\n", ang);
+			printf("distance du point %f\n", p.range);
 			return 1;
 		}
 
-		bool obstDroite = (ang > debut && (ang > debut + 2*angleMax / 2) && (ang < debut + 2*angleMax)) && obstacleMiDist(p);
+		bool obstDroite = (ang > debut && (ang > debut + angleMax / 2) && (ang < debut + 1.3*angleMax)) && obstacleMiDist(p);
 		if (obstDroite && gaucheLibre(scan))
 		{
 			printf("angle du point %f\n", ang);
-			printf("distance du point %f\n", ang);
+			printf("distance du point %f\n", p.range);
 			return 2;
 		}
 

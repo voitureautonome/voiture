@@ -1,5 +1,9 @@
 #include <src/CYdLidar.h>
 
+float radToDeg(float rad)
+{
+    return rad * (180 / M_PI);
+}
 
 boolean obstacleProche(LaserPoint p) {
 	if (p.range == 0) return false;
@@ -9,7 +13,7 @@ boolean obstacleProche(LaserPoint p) {
 
 boolean obstacleMiDist(LaserPoint p) {
 	if (p.range == 0) return false;
-	if (p.range > 20 et p.range < 40) return true;
+	if (p.range > 20 && p.range < 40) return true;
 	else return false;
 }
 
@@ -24,7 +28,7 @@ int decision(LaserScan scan) {
 	{
 		float ang = radToDeg(p.angle);
 		
-		// Obstacle devant le véhicule qui est proche
+		// Obstacle devant le vÃ©hicule qui est proche
 		bool arret = (p.angle < debut + angleMax / 2 || p.angle > fin - angleMax / 2) && obstacleProche(p);
 		if (arret)
 			return 0;
@@ -39,8 +43,10 @@ int decision(LaserScan scan) {
 		bool obstDroite = (p.angle < moitie && p.angle > debut) && (p.angle > angleMax / 2) && (p.angle < angleMax);
 		if (obstGauche)
 		{
-			return 1;
+			return 2;
 		}
+
+		
 
 	}
 }

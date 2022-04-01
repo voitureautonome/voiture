@@ -14,8 +14,11 @@
 
 #define AVANCER 1
 #define DEFAULT 0
+#define EVITEMENT 2
 
 int etat = DEFAULT;
+bool obstacleProche(LaserPoint p);
+int decision(LaserScan scan);
 
 /**
  * Calculate the number of ticks the signal should be high for the required amount of time
@@ -36,13 +39,38 @@ float map(float input, float min, float max)
 }
 
 void arreter() {
-	pwmWrite(PIN_BASE + 4, calcTicks(0, HERTZ));
-	pwmWrite(PIN_BASE + 5, calcTicks(0, HERTZ));
+	pwmWrite(PIN_BASE + 4, 0);
+	pwmWrite(PIN_BASE + 5, 0);
 }
 
 void avancer() {
 	pwmWrite(PIN_BASE + 4, calcTicks(12, HERTZ));
 	pwmWrite(PIN_BASE + 5, calcTicks(12, HERTZ));
+}
+
+
+void tourner(float value){
+	float r=(value+45.f)/100;
+	float millis = map(r, 1, 2);
+    int tick = calcTicks(millis, HERTZ);
+    pwmWrite(PIN_BASE + 0, tick);
+}
+void toutDroit(){
+    tourner(12);
+}
+void tournerGauche() {
+	tourner(-45.f);
+}
+void tournerDroite(){
+	tourner(45.f);
+}
+void evitement(int val){
+	if (val == 1)// obstacle à gauche
+	{
+		tournerDroite();
+	} else {
+		tournerGauche();
+	}
 }
 
 using namespace cv;
@@ -67,6 +95,11 @@ int main()
 		printf("Error in setup\n");
 		return fd;
 	}
+	tournerGauche();
+	delay(500);
+	tournerDroite();
+	delay(500);
+	toutDroit();
 	lidar();
 	// Reset all output
 	pca9685PWMReset(fd);
@@ -210,7 +243,7 @@ void lidar()
 
 	float periode = 0.5;
 	time_t lastime;
-	time(&lastime)
+	time(&lastime);
 	
 
 
@@ -219,7 +252,7 @@ void lidar()
 	{
 		if(etat != 0) {
 			time_t now;
-			time(&now)
+			time(&now);
 			if(now - lastime < periode) continue;
 			else etat = 0;
 		}
@@ -228,24 +261,52 @@ void lidar()
 		LaserScan scan;
 		if (laser.doProcessSimple(scan))
 		{
-			int d = decision();
-			switch (d)
+			int d = decision(scan);
+			std::cout<<"decision "<<d<<std::endl;
+			if (etat == EVITEMENT)
 			{
-			case 0:
-				arreter();
-				ret = false;
-				break;
-			default:
-				avancer();
-				etat = AVANCER;
-				break;
+				switch (d)
+				{
+				case 0:
+					arreter();
+					ret = false;
+					break;
+				case -1:
+					toutDroit();
+					etat = AVANCER;
+				default:
+					break;
+				}
 			}
+			else {
+				switch (d)
+				{
+				case 0:
+					arreter();
+					ret = false;
+					break;
+				case 1:// obstacle à gauche
+					evitement(1);
+					etat = EVITEMENT;
+					break;
+				case 2:// obstacle à droite
+					evitement(2);
+					etat = EVITEMENT;
+					break;
+				default:
+					toutDroit();
+					avancer();
+					etat = AVANCER;
+				}
+			}
+			
 
 
-			fprintf(stdout, "Scan received[%llu]: %u ranges is [%f]Hz\n",
-					scan.stamp,
-					(unsigned int)scan.points.size(), 1.0 / scan.config.scan_time);
-			std::cout << scan.points.at(scan.points.size() - 1).range << std::endl;
+
+			// fprintf(stdout, "Scan received[%llu]: %u ranges is [%f]Hz\n",
+			// 		scan.stamp,
+			// 		(unsigned int)scan.points.size(), 1.0 / scan.config.scan_time);
+			// std::cout << scan.points.at(scan.points.size() - 1).range << std::endl;
 			for (size_t i = 0; i < scan.points.size(); i++)
 			{
 				LaserPoint point = scan.points.at(i);
@@ -272,15 +333,15 @@ float radToDeg(float rad)
 	return rad * (180 / M_PI);
 }
 
-boolean obstacleProche(LaserPoint p) {
+bool obstacleProche(LaserPoint p) {
 	if (p.range == 0) return false;
-	if (p.range < 20) return true;
+	if (p.range < 0.15f) return true;
 	else return false;
 }
 
-boolean obstacleMiDist(LaserPoint p) {
+bool obstacleMiDist(LaserPoint p) {
 	if (p.range == 0) return false;
-	if (p.range > 20 && p.range < 40) return true;
+	if (p.range > 0.15f && p.range < 0.40f) return true;
 	else return false;
 }
 
@@ -291,7 +352,8 @@ int decision(LaserScan scan) {
 	float debut = 0.f;
 	float fin = 359.99f;
 
-	for each (LaserPoint p in scan.points)
+	
+	for(LaserPoint p : scan.points)
 	{
 		float ang = radToDeg(p.angle);
 		
@@ -316,4 +378,5 @@ int decision(LaserScan scan) {
 		
 
 	}
+	return -1;
 }
